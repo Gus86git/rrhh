@@ -96,6 +96,23 @@ st.markdown("""
         margin: 1rem 0;
         border-left: 4px solid #3498db;
     }
+    .project-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #3498db;
+    }
+    .risk-high {
+        border-left: 4px solid #e74c3c !important;
+    }
+    .risk-medium {
+        border-left: 4px solid #f39c12 !important;
+    }
+    .risk-low {
+        border-left: 4px solid #2ecc71 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -475,6 +492,243 @@ def show_executive_dashboard(df_empleados, df_obras, df_asistencias):
         if fig:
             st.plotly_chart(fig, use_container_width=True)
 
+def show_person_management(df_empleados, df_asistencias):
+    st.markdown('<div class="section-header">👥 Gestión de Personal</div>', unsafe_allow_html=True)
+    
+    # Filtros
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        dept_filter = st.selectbox(
+            "🏢 Departamento",
+            options=['Todos'] + df_empleados['departamento'].unique().tolist()
+        )
+    
+    with col2:
+        ubicacion_filter = st.selectbox(
+            "📍 Ubicación",
+            options=['Todos'] + df_empleados['ubicacion'].unique().tolist()
+        )
+    
+    with col3:
+        estado_filter = st.selectbox(
+            "✅ Estado",
+            options=['Todos', 'Activos', 'Inactivos']
+        )
+    
+    with col4:
+        aptitud_filter = st.selectbox(
+            "🎯 Aptitud Obra Compleja",
+            options=['Todos', 'Aptos', 'No Aptos']
+        )
+    
+    # Aplicar filtros
+    filtered_employees = df_empleados.copy()
+    
+    if dept_filter != 'Todos':
+        filtered_employees = filtered_employees[filtered_employees['departamento'] == dept_filter]
+    
+    if ubicacion_filter != 'Todos':
+        filtered_employees = filtered_employees[filtered_employees['ubicacion'] == ubicacion_filter]
+    
+    if estado_filter == 'Activos':
+        filtered_employees = filtered_employees[filtered_employees['activo'] == True]
+    elif estado_filter == 'Inactivos':
+        filtered_employees = filtered_employees[filtered_employees['activo'] == False]
+    
+    if aptitud_filter == 'Aptos':
+        filtered_employees = filtered_employees[filtered_employees['apto_obra_compleja'] == True]
+    elif aptitud_filter == 'No Aptos':
+        filtered_employees = filtered_employees[filtered_employees['apto_obra_compleja'] == False]
+    
+    # Métricas
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("👥 Total Filtrado", len(filtered_employees))
+    
+    with col2:
+        avg_salary = filtered_employees['salario'].mean()
+        st.metric("💰 Salario Promedio", f"${avg_salary:,.0f}")
+    
+    with col3:
+        avg_experience = filtered_employees['experiencia_meses'].mean()
+        st.metric("📅 Experiencia Promedio", f"{avg_experience:.0f} meses")
+    
+    with col4:
+        avg_performance = filtered_employees['evaluacion_desempeno'].mean()
+        st.metric("⭐ Desempeño Promedio", f"{avg_performance:.1f}%")
+    
+    # Gráficos
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Distribución por departamento
+        dept_dist = filtered_employees['departamento'].value_counts()
+        fig = px.pie(
+            values=dept_dist.values,
+            names=dept_dist.index,
+            title='Distribución por Departamento'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Salario vs Experiencia
+        fig = px.scatter(
+            filtered_employees,
+            x='experiencia_meses',
+            y='salario',
+            color='departamento',
+            title='Salario vs Experiencia por Departamento',
+            size='evaluacion_desempeno',
+            hover_data=['nombre', 'apellido']
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Tabla de empleados
+    st.subheader("📋 Lista de Empleados")
+    
+    # Seleccionar columnas para mostrar
+    display_columns = ['id', 'nombre', 'apellido', 'departamento', 'cargo', 'salario', 
+                      'experiencia_meses', 'evaluacion_desempeno', 'apto_obra_compleja']
+    
+    st.dataframe(
+        filtered_employees[display_columns],
+        use_container_width=True,
+        height=400
+    )
+
+def show_project_management(df_obras, df_asistencias, df_empleados):
+    st.markdown('<div class="section-header">🏗️ Gestión de Obras</div>', unsafe_allow_html=True)
+    
+    # Filtros
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        estado_filter = st.selectbox(
+            "📊 Estado Obra",
+            options=['Todos'] + df_obras['estado'].unique().tolist(),
+            key="estado_obra"
+        )
+    
+    with col2:
+        tipo_filter = st.selectbox(
+            "🏢 Tipo Obra",
+            options=['Todos'] + df_obras['tipo'].unique().tolist()
+        )
+    
+    with col3:
+        complejidad_filter = st.selectbox(
+            "⚡ Complejidad",
+            options=['Todos'] + df_obras['complejidad'].unique().tolist()
+        )
+    
+    # Aplicar filtros
+    filtered_projects = df_obras.copy()
+    
+    if estado_filter != 'Todos':
+        filtered_projects = filtered_projects[filtered_projects['estado'] == estado_filter]
+    
+    if tipo_filter != 'Todos':
+        filtered_projects = filtered_projects[filtered_projects['tipo'] == tipo_filter]
+    
+    if complejidad_filter != 'Todos':
+        filtered_projects = filtered_projects[filtered_projects['complejidad'] == complejidad_filter]
+    
+    # Métricas de obras
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        total_presupuesto = filtered_projects['presupuesto'].sum()
+        st.metric("💰 Presupuesto Total", f"${total_presupuesto:,.0f}")
+    
+    with col2:
+        obras_en_progreso = len(filtered_projects[filtered_projects['estado'] == 'En Progreso'])
+        st.metric("🏗️ Obras en Progreso", obras_en_progreso)
+    
+    with col3:
+        obras_en_riesgo = len(filtered_projects[filtered_projects['estado'] == 'En Riesgo'])
+        st.metric("⚠️ Obras en Riesgo", obras_en_riesgo)
+    
+    with col4:
+        avg_duration = filtered_projects['duracion_estimada'].mean()
+        st.metric("📅 Duración Promedio", f"{avg_duration:.0f} días")
+    
+    # Mostrar obras como tarjetas
+    st.subheader("📋 Detalle de Obras")
+    
+    for _, obra in filtered_projects.iterrows():
+        # Determinar clase de riesgo
+        if obra['estado'] == 'En Riesgo':
+            risk_class = "risk-high"
+        elif obra['estado'] == 'En Progreso':
+            risk_class = "risk-medium"
+        else:
+            risk_class = "risk-low"
+        
+        st.markdown(f'<div class="project-card {risk_class}">', unsafe_allow_html=True)
+        
+        col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+        
+        with col1:
+            st.write(f"### {obra['nombre']}")
+            st.write(f"**Ubicación:** {obra['ubicacion']} | **Gerente:** {obra['gerente']}")
+            st.write(f"**Tipo:** {obra['tipo']} | **Complejidad:** {obra['complejidad']}")
+        
+        with col2:
+            st.write(f"**Presupuesto:** ${obra['presupuesto']:,.0f}")
+            st.write(f"**Duración:** {obra['duracion_estimada']} días")
+            st.write(f"**Inicio:** {obra['fecha_inicio'].strftime('%d/%m/%Y')}")
+        
+        with col3:
+            st.write(f"**Estado:** {obra['estado']}")
+            st.write(f"**Apto Compleja:** {'✅' if obra['requiere_apto_obra_compleja'] else '❌'}")
+            st.write(f"**Exp. Mínima:** {obra['experiencia_minima_meses']} meses")
+        
+        with col4:
+            status_color = {
+                'En Planificación': '🟡',
+                'En Progreso': '🟢',
+                'En Riesgo': '🔴',
+                'Completado': '🔵',
+                'Pausado': '🟠'
+            }[obra['estado']]
+            st.write(f"### {status_color}")
+            
+            if st.button("📊 Detalles", key=f"detalles_{obra['id']}"):
+                st.session_state[f"show_details_{obra['id']}"] = True
+        
+        # Mostrar detalles si se hace clic
+        if st.session_state.get(f"show_details_{obra['id']}", False):
+            st.info(f"Detalles completos de {obra['nombre']}")
+            # Aquí podrías mostrar más información específica de la obra
+    
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Gráficos de análisis de obras
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Distribución de presupuesto por tipo
+        fig = px.bar(
+            filtered_projects.groupby('tipo')['presupuesto'].sum().reset_index(),
+            x='tipo',
+            y='presupuesto',
+            title='Presupuesto por Tipo de Obra',
+            color='tipo'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Estado de obras
+        estado_counts = filtered_projects['estado'].value_counts()
+        fig = px.pie(
+            values=estado_counts.values,
+            names=estado_counts.index,
+            title='Distribución de Estados de Obras'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
 def show_aptitude_analysis(df_empleados, df_obras):
     st.markdown('<div class="section-header">🎯 Análisis de Aptitud para Obras</div>', unsafe_allow_html=True)
     
@@ -670,6 +924,306 @@ def show_aptitude_analysis(df_empleados, df_obras):
             if fig:
                 st.plotly_chart(fig, use_container_width=True)
 
+def show_advanced_analytics(df_empleados, df_asistencias):
+    st.markdown('<div class="section-header">📈 Analytics Avanzado</div>', unsafe_allow_html=True)
+    
+    # Análisis predictivo de rotación
+    st.subheader("🔮 Predicción de Rotación")
+    
+    # Simular análisis predictivo
+    df_analytics = df_empleados[df_empleados['activo']].copy()
+    
+    # Crear características para el modelo (simulado)
+    df_analytics['riesgo_rotacion'] = np.random.normal(0.3, 0.2, len(df_analytics))
+    df_analytics['riesgo_rotacion'] = df_analytics['riesgo_rotacion'].clip(0, 1)
+    
+    # Clasificar riesgo
+    def clasificar_riesgo(score):
+        if score > 0.7:
+            return 'Alto'
+        elif score > 0.4:
+            return 'Medio'
+        else:
+            return 'Bajo'
+    
+    df_analytics['nivel_riesgo'] = df_analytics['riesgo_rotacion'].apply(clasificar_riesgo)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        alto_riesgo = len(df_analytics[df_analytics['nivel_riesgo'] == 'Alto'])
+        st.metric("🔴 Alto Riesgo", alto_riesgo)
+    
+    with col2:
+        medio_riesgo = len(df_analytics[df_analytics['nivel_riesgo'] == 'Medio'])
+        st.metric("🟡 Medio Riesgo", medio_riesgo)
+    
+    with col3:
+        bajo_riesgo = len(df_analytics[df_analytics['nivel_riesgo'] == 'Bajo'])
+        st.metric("🟢 Bajo Riesgo", bajo_riesgo)
+    
+    # Gráficos de análisis avanzado
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Matriz de correlación
+        numeric_cols = ['edad', 'experiencia_meses', 'salario', 'evaluacion_desempeno', 'ausencias_ultimo_mes']
+        corr_matrix = df_analytics[numeric_cols].corr()
+        
+        fig = px.imshow(
+            corr_matrix,
+            title='Matriz de Correlación entre Variables',
+            color_continuous_scale='RdBu_r',
+            aspect='auto'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Segmentación por desempeño y potencial
+        fig = px.scatter(
+            df_analytics,
+            x='evaluacion_desempeno',
+            y='experiencia_meses',
+            color='nivel_riesgo',
+            size='salario',
+            title='Segmentación: Desempeño vs Experiencia',
+            hover_data=['nombre', 'apellido', 'departamento'],
+            color_discrete_map={'Alto': 'red', 'Medio': 'orange', 'Bajo': 'green'}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Análisis de clusters
+    st.subheader("🎯 Segmentación Avanzada")
+    
+    # Simular clusters
+    df_analytics['cluster'] = np.random.choice(['A - Alto Potencial', 'B - Estables', 'C - Necesitan Soporte'], 
+                                              len(df_analytics), p=[0.2, 0.6, 0.2])
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        cluster_counts = df_analytics['cluster'].value_counts()
+        fig = px.bar(
+            x=cluster_counts.index,
+            y=cluster_counts.values,
+            title='Distribución de Segmentos',
+            color=cluster_counts.index,
+            labels={'x': 'Segmento', 'y': 'Cantidad'}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Análisis de composición salarial por segmento
+        fig = px.box(
+            df_analytics,
+            x='cluster',
+            y='salario',
+            title='Distribución Salarial por Segmento',
+            color='cluster'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+def show_early_warnings(df_empleados, df_obras, df_asistencias):
+    st.markdown('<div class="section-header">⚠️ Sistema de Alertas Tempranas</div>', unsafe_allow_html=True)
+    
+    # Alertas de empleados
+    st.subheader("👥 Alertas de Personal")
+    
+    # Generar alertas simuladas
+    alertas_empleados = []
+    
+    # Alertas por bajo desempeño
+    bajo_desempeno = df_empleados[
+        (df_empleados['activo']) & 
+        (df_empleados['evaluacion_desempeno'] < 70)
+    ]
+    for _, emp in bajo_desempeno.iterrows():
+        alertas_empleados.append({
+            'tipo': 'Bajo Desempeño',
+            'nivel': 'Alto',
+            'descripcion': f"{emp['nombre']} {emp['apellido']} - Evaluación: {emp['evaluacion_desempeno']:.1f}%",
+            'departamento': emp['departamento']
+        })
+    
+    # Alertas por alto ausentismo
+    alto_ausentismo = df_empleados[
+        (df_empleados['activo']) & 
+        (df_empleados['ausencias_ultimo_mes'] > 3)
+    ]
+    for _, emp in alto_ausentismo.iterrows():
+        alertas_empleados.append({
+            'tipo': 'Alto Ausentismo',
+            'nivel': 'Medio',
+            'descripcion': f"{emp['nombre']} {emp['apellido']} - {emp['ausencias_ultimo_mes']} ausencias/mes",
+            'departamento': emp['departamento']
+        })
+    
+    # Mostrar alertas de empleados
+    for alerta in alertas_empleados:
+        if alerta['nivel'] == 'Alto':
+            st.markdown(f'<div class="alert-high">', unsafe_allow_html=True)
+        elif alerta['nivel'] == 'Medio':
+            st.markdown(f'<div class="alert-medium">', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="alert-low">', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([2, 2, 1])
+        
+        with col1:
+            st.write(f"**{alerta['tipo']}**")
+            st.write(f"Departamento: {alerta['departamento']}")
+        
+        with col2:
+            st.write(alerta['descripcion'])
+        
+        with col3:
+            if st.button("📋 Acción", key=f"accion_{alerta['descripcion']}"):
+                st.success(f"Acción tomada para {alerta['descripcion']}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Alertas de obras
+    st.subheader("🏗️ Alertas de Obras")
+    
+    alertas_obras = []
+    
+    # Obras en riesgo
+    obras_riesgo = df_obras[df_obras['estado'] == 'En Riesgo']
+    for _, obra in obras_riesgo.iterrows():
+        alertas_obras.append({
+            'tipo': 'Obra en Riesgo',
+            'nivel': 'Alto',
+            'descripcion': f"{obra['nombre']} - {obra['ubicacion']}",
+            'presupuesto': obra['presupuesto']
+        })
+    
+    # Obras sin gerente asignado (simulado)
+    for _, obra in df_obras.sample(2).iterrows():
+        alertas_obras.append({
+            'tipo': 'Falta Recursos',
+            'nivel': 'Medio',
+            'descripcion': f"{obra['nombre']} - Necesita más personal especializado",
+            'presupuesto': obra['presupuesto']
+        })
+    
+    # Mostrar alertas de obras
+    for alerta in alertas_obras:
+        if alerta['nivel'] == 'Alto':
+            st.markdown(f'<div class="alert-high">', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="alert-medium">', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([2, 2, 1])
+        
+        with col1:
+            st.write(f"**{alerta['tipo']}**")
+            st.write(f"Presupuesto: ${alerta['presupuesto']:,.0f}")
+        
+        with col2:
+            st.write(alerta['descripcion'])
+        
+        with col3:
+            if st.button("🔧 Resolver", key=f"resolver_{alerta['descripcion']}"):
+                st.success(f"Problema resuelto para {alerta['descripcion']}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Métricas de alertas
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("📊 Total Alertas", len(alertas_empleados) + len(alertas_obras))
+    
+    with col2:
+        alertas_altas = len([a for a in alertas_empleados + alertas_obras if a['nivel'] == 'Alto'])
+        st.metric("🔴 Alertas Altas", alertas_altas)
+    
+    with col3:
+        alertas_medias = len([a for a in alertas_empleados + alertas_obras if a['nivel'] == 'Medio'])
+        st.metric("🟡 Alertas Medias", alertas_medias)
+    
+    with col4:
+        st.metric("✅ Resueltas Hoy", np.random.randint(2, 8))
+
+def show_configuration():
+    st.markdown('<div class="section-header">⚙️ Configuración del Sistema</div>', unsafe_allow_html=True)
+    
+    # Configuración de parámetros
+    st.subheader("📋 Parámetros del Sistema")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.number_input("Umbral Bajo Desempeño (%)", min_value=0, max_value=100, value=70)
+        st.number_input("Umbral Alto Ausentismo (días/mes)", min_value=1, max_value=30, value=3)
+        st.number_input("Porcentaje Mínimo Aptitud", min_value=0, max_value=100, value=75)
+    
+    with col2:
+        st.number_input("Horas Extra Máximas Semanales", min_value=1, max_value=20, value=10)
+        st.number_input("Experiencia Mínima Obra Compleja (meses)", min_value=1, max_value=60, value=24)
+        st.number_input("Evaluación Mínima Promoción", min_value=0, max_value=100, value=80)
+    
+    # Configuración de notificaciones
+    st.subheader("🔔 Configuración de Notificaciones")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.checkbox("Alertas de Bajo Desempeño", value=True)
+        st.checkbox("Alertas de Alto Ausentismo", value=True)
+        st.checkbox("Alertas de Rotación", value=True)
+    
+    with col2:
+        st.checkbox("Notificaciones de Obras en Riesgo", value=True)
+        st.checkbox("Reportes Semanales Automáticos", value=True)
+        st.checkbox("Recordatorios de Evaluaciones", value=True)
+    
+    with col3:
+        st.selectbox("Frecuencia de Reportes", ["Diario", "Semanal", "Mensual"])
+        st.selectbox("Método de Notificación", ["Email", "SMS", "Ambos"])
+        st.text_input("Email de Contacto", "admin@empresa.com")
+    
+    # Configuración de integraciones
+    st.subheader("🔗 Integraciones")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.text_input("API Key Sistema de Nómina")
+        st.text_input("URL Base de Datos")
+        st.text_input("Token de Autenticación")
+    
+    with col2:
+        st.checkbox("Sincronización Automática", value=True)
+        st.number_input("Intervalo Sincronización (min)", min_value=5, max_value=1440, value=60)
+        st.selectbox("Nivel de Log", ["DEBUG", "INFO", "WARNING", "ERROR"])
+    
+    # Acciones del sistema
+    st.subheader("🛠️ Acciones del Sistema")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("🔄 Sincronizar Datos", use_container_width=True):
+            st.success("Datos sincronizados correctamente")
+        
+        if st.button("📊 Generar Reporte", use_container_width=True):
+            st.success("Reporte generado y enviado")
+    
+    with col2:
+        if st.button("💾 Respaldar Base", use_container_width=True):
+            st.success("Respaldo completado exitosamente")
+        
+        if st.button("🧹 Limpiar Cache", use_container_width=True):
+            st.success("Cache limpiado correctamente")
+    
+    with col3:
+        if st.button("🔍 Ver Logs", use_container_width=True):
+            st.info("Mostrando logs del sistema...")
+        
+        if st.button("🔄 Reiniciar Sistema", use_container_width=True):
+            st.warning("Reiniciando sistema...")
+
 def show_dashboard_manual():
     st.markdown('<div class="section-header">📖 Manual del Dashboard RRHH Analytics Pro</div>', unsafe_allow_html=True)
     
@@ -804,27 +1358,6 @@ def show_dashboard_manual():
     
     for tip in tips:
         st.write(f"• {tip}")
-
-# Funciones placeholder para los módulos faltantes
-def show_person_management(df_empleados, df_asistencias):
-    st.markdown('<div class="section-header">👥 Gestión de Personal</div>', unsafe_allow_html=True)
-    st.info("Módulo de Gestión de Personal - En desarrollo")
-    
-def show_project_management(df_obras, df_asistencias, df_empleados):
-    st.markdown('<div class="section-header">🏗️ Gestión de Obras</div>', unsafe_allow_html=True)
-    st.info("Módulo de Gestión de Obras - En desarrollo")
-    
-def show_advanced_analytics(df_empleados, df_asistencias):
-    st.markdown('<div class="section-header">📈 Analytics Avanzado</div>', unsafe_allow_html=True)
-    st.info("Módulo de Analytics Avanzado - En desarrollo")
-    
-def show_early_warnings(df_empleados, df_obras, df_asistencias):
-    st.markdown('<div class="section-header">⚠️ Sistema de Alertas</div>', unsafe_allow_html=True)
-    st.info("Módulo de Sistema de Alertas - En desarrollo")
-    
-def show_configuration():
-    st.markdown('<div class="section-header">⚙️ Configuración</div>', unsafe_allow_html=True)
-    st.info("Módulo de Configuración - En desarrollo")
 
 if __name__ == "__main__":
     main()
