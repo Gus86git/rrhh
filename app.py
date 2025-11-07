@@ -6,21 +6,12 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Importaciones para gráficos avanzados
-try:
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    MATPLOTLIB_AVAILABLE = False
-
-try:
-    import plotly.express as px
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
-    import plotly.figure_factory as ff
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    PLOTLY_AVAILABLE = False
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.figure_factory as ff
 
 # Configuración de página
 st.set_page_config(
@@ -266,10 +257,6 @@ def load_data():
 
 def create_advanced_plotly_chart(data, title, chart_type='bar', **kwargs):
     """Función avanzada para crear gráficos Plotly con estilo Power BI"""
-    if not PLOTLY_AVAILABLE:
-        st.warning(f"Plotly no disponible para: {title}")
-        return None
-    
     try:
         if chart_type == 'sunburst':
             fig = px.sunburst(data, **kwargs)
@@ -414,44 +401,42 @@ def show_executive_dashboard(df_empleados, df_obras, df_asistencias):
     with col1:
         st.subheader("🌐 Mapa de Calor - Productividad por Depto/Ubicación")
         
-        if PLOTLY_AVAILABLE:
-            # Crear matriz de productividad
-            heatmap_data = df_asistencias.merge(df_empleados, left_on='empleado_id', right_on='id')
-            pivot_table = heatmap_data.pivot_table(
-                values='productividad', 
-                index='departamento', 
-                columns='ubicacion', 
-                aggfunc='mean'
-            ).fillna(0)
-            
-            fig = create_advanced_plotly_chart(
-                pivot_table.reset_index(),
-                'Productividad Promedio por Departamento y Ubicación',
-                'density_heatmap',
-                x='ubicacion',
-                y='departamento',
-                z=pivot_table.values.flatten(),
-                color_continuous_scale='Viridis'
-            )
-            if fig:
-                st.plotly_chart(fig, use_container_width=True)
+        # Crear matriz de productividad
+        heatmap_data = df_asistencias.merge(df_empleados, left_on='empleado_id', right_on='id')
+        pivot_table = heatmap_data.pivot_table(
+            values='productividad', 
+            index='departamento', 
+            columns='ubicacion', 
+            aggfunc='mean'
+        ).fillna(0)
+        
+        fig = create_advanced_plotly_chart(
+            pivot_table.reset_index(),
+            'Productividad Promedio por Departamento y Ubicación',
+            'density_heatmap',
+            x='ubicacion',
+            y='departamento',
+            z=pivot_table.values.flatten(),
+            color_continuous_scale='Viridis'
+        )
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
     
     with col2:
         st.subheader("📊 Sunburst - Distribución Jerárquica")
         
-        if PLOTLY_AVAILABLE:
-            sunburst_data = df_empleados[df_empleados['activo']].copy()
-            fig = create_advanced_plotly_chart(
-                sunburst_data,
-                'Distribución de Empleados por Departamento y Especialidad',
-                'sunburst',
-                path=['departamento', 'especialidad'],
-                values='salario',
-                color='salario',
-                color_continuous_scale='Blues'
-            )
-            if fig:
-                st.plotly_chart(fig, use_container_width=True)
+        sunburst_data = df_empleados[df_empleados['activo']].copy()
+        fig = create_advanced_plotly_chart(
+            sunburst_data,
+            'Distribución de Empleados por Departamento y Especialidad',
+            'sunburst',
+            path=['departamento', 'especialidad'],
+            values='salario',
+            color='salario',
+            color_continuous_scale='Blues'
+        )
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
     
     # Tercera fila - Más visualizaciones
     col1, col2 = st.columns(2)
@@ -459,38 +444,36 @@ def show_executive_dashboard(df_empleados, df_obras, df_asistencias):
     with col1:
         st.subheader("🎻 Distribución Salarial - Violin Plot")
         
-        if PLOTLY_AVAILABLE:
-            fig = create_advanced_plotly_chart(
-                df_empleados[df_empleados['activo']],
-                'Distribución Salarial por Departamento',
-                'violin',
-                x='departamento',
-                y='salario',
-                color='departamento',
-                box=True
-            )
-            if fig:
-                st.plotly_chart(fig, use_container_width=True)
+        fig = create_advanced_plotly_chart(
+            df_empleados[df_empleados['activo']],
+            'Distribución Salarial por Departamento',
+            'violin',
+            x='departamento',
+            y='salario',
+            color='departamento',
+            box=True
+        )
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
     
     with col2:
         st.subheader("📈 Tendencia Temporal - Productividad")
         
-        if PLOTLY_AVAILABLE:
-            df_asistencias['fecha'] = pd.to_datetime(df_asistencias['fecha'])
-            df_asistencias['mes'] = df_asistencias['fecha'].dt.to_period('M').astype(str)
-            
-            productividad_mensual = df_asistencias.groupby('mes')['productividad'].mean().reset_index()
-            
-            fig = create_advanced_plotly_chart(
-                productividad_mensual,
-                'Evolución Mensual de Productividad',
-                'line',
-                x='mes',
-                y='productividad',
-                markers=True
-            )
-            if fig:
-                st.plotly_chart(fig, use_container_width=True)
+        df_asistencias['fecha'] = pd.to_datetime(df_asistencias['fecha'])
+        df_asistencias['mes'] = df_asistencias['fecha'].dt.to_period('M').astype(str)
+        
+        productividad_mensual = df_asistencias.groupby('mes')['productividad'].mean().reset_index()
+        
+        fig = create_advanced_plotly_chart(
+            productividad_mensual,
+            'Evolución Mensual de Productividad',
+            'line',
+            x='mes',
+            y='productividad',
+            markers=True
+        )
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
 
 def show_aptitude_analysis(df_empleados, df_obras):
     st.markdown('<div class="section-header">🎯 Análisis de Aptitud para Obras</div>', unsafe_allow_html=True)
@@ -639,7 +622,7 @@ def show_aptitude_analysis(df_empleados, df_obras):
             st.write(f"✅ {aptitud['criterios_cumplidos']}/4 criterios")
         
         with col4:
-                        if aptitud['apto']:
+            if aptitud['apto']:
                 st.success("**APTO**")
                 if st.button("📋 Asignar", key=f"asignar_{emp['id']}"):
                     st.success(f"✅ {emp['nombre']} asignado a {obra_seleccionada}")
@@ -650,7 +633,7 @@ def show_aptitude_analysis(df_empleados, df_obras):
         st.markdown('</div>', unsafe_allow_html=True)
 
     # Gráfico de distribución de aptitud
-    if PLOTLY_AVAILABLE and aptitudes:
+    if aptitudes:
         st.subheader("📊 Análisis de Aptitud")
         
         aptitud_data = pd.DataFrame([{
@@ -822,8 +805,26 @@ def show_dashboard_manual():
     for tip in tips:
         st.write(f"• {tip}")
 
-# Las otras funciones permanecen igual que en la versión anterior...
-# (show_advanced_analytics, show_early_warnings, show_configuration, etc.)
+# Funciones placeholder para los módulos faltantes
+def show_person_management(df_empleados, df_asistencias):
+    st.markdown('<div class="section-header">👥 Gestión de Personal</div>', unsafe_allow_html=True)
+    st.info("Módulo de Gestión de Personal - En desarrollo")
+    
+def show_project_management(df_obras, df_asistencias, df_empleados):
+    st.markdown('<div class="section-header">🏗️ Gestión de Obras</div>', unsafe_allow_html=True)
+    st.info("Módulo de Gestión de Obras - En desarrollo")
+    
+def show_advanced_analytics(df_empleados, df_asistencias):
+    st.markdown('<div class="section-header">📈 Analytics Avanzado</div>', unsafe_allow_html=True)
+    st.info("Módulo de Analytics Avanzado - En desarrollo")
+    
+def show_early_warnings(df_empleados, df_obras, df_asistencias):
+    st.markdown('<div class="section-header">⚠️ Sistema de Alertas</div>', unsafe_allow_html=True)
+    st.info("Módulo de Sistema de Alertas - En desarrollo")
+    
+def show_configuration():
+    st.markdown('<div class="section-header">⚙️ Configuración</div>', unsafe_allow_html=True)
+    st.info("Módulo de Configuración - En desarrollo")
 
 if __name__ == "__main__":
     main()
